@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Log Analyzer{% endblock %} — Intrusion Detection Analyzer</title>
+  <meta name="description" content="Log Analyzer — Professional log file analyzer for intrusion detection. Detect brute force, DoS, scanning and injection attacks.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Log Analyzer CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<div class="bg-gradient-anim"></div>
+
+<!-- Flash Messages -->
+<div class="alert-container" id="alertContainer">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ 'danger' if category == 'danger' else ('success' if category == 'success' else ('warning' if category == 'warning' else 'info')) }}">
+        <span>{{ '✅' if category == 'success' else ('❌' if category == 'danger' else ('⚠️' if category == 'warning' else 'ℹ️')) }}</span>
+        <span>{{ message }}</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<div class="layout">
+  <!-- ── Sidebar ─────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="{{ url_for('dashboard') }}" class="brand">
+        <div class="logo-icon">🛡</div>
+        <div>
+          <div class="brand-name">Log Analyzer</div>
+          <div class="brand-sub">Intrusion Detection</div>
+        </div>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Navigation</div>
+
+      <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+      <a href="{{ url_for('logs') }}" class="nav-link {% if request.endpoint in ['logs', 'upload_log', 'load_sample'] %}active{% endif %}">
+        <span class="nav-icon">📂</span> Log Files
+      </a>
+      <a href="{{ url_for('threats') }}" class="nav-link {% if request.endpoint == 'threats' %}active{% endif %}">
+        <span class="nav-icon">🚨</span> Threats
+      </a>
+      <a href="{{ url_for('visualizer') }}" class="nav-link {% if request.endpoint == 'visualizer' %}active{% endif %}">
+        <span class="nav-icon">📊</span> Visualizer
+      </a>
+      <a href="{{ url_for('blacklist') }}" class="nav-link {% if request.endpoint == 'blacklist' %}active{% endif %}">
+        <span class="nav-icon">🌐</span> Blacklist
+      </a>
+
+      <hr class="nav-divider">
+
+      <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
+        <span class="nav-icon">📄</span> Reports
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-badge">
+        <div class="status-dot"></div>
+        <span>System Online</span>
+      </div>
+      <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Log Analyzer v1.0</div>
+    </div>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────── -->
+  <div class="main-content">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+        <p>{% block page_sub %}Overview of your security posture{% endblock %}</p>
+      </div>
+      <div class="topbar-actions">
+        {% block topbar_actions %}
+          <a href="{{ url_for('logs') }}" class="btn btn-primary btn-sm">
+            ⬆ Upload Log
+          </a>
+          <a href="{{ url_for('reports') }}" class="btn btn-ghost btn-sm">
+            📄 Export
+          </a>
+        {% endblock %}
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<!-- Shared JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

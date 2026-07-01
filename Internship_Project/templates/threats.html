@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Threats{% endblock %}
+{% block page_title %}Threat Analysis{% endblock %}
+{% block page_sub %}Detected intrusion attempts and suspicious activity{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('reports') }}" class="btn btn-primary btn-sm">📄 Export Report</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Filter Bar ─────────────────────────── -->
+<form method="GET" action="{{ url_for('threats') }}">
+  <div class="session-select-bar">
+    <span style="font-size:12px; color:var(--text-secondary); font-weight:500;">FILTER:</span>
+
+    <select name="session_id" class="form-control" style="width:180px;" onchange="this.form.submit()">
+      <option value="">All Sessions</option>
+      {% for s in sessions %}
+      <option value="{{ s.id }}" {% if selected_session == s.id %}selected{% endif %}>
+        {{ s.filename[:30] }}
+      </option>
+      {% endfor %}
+    </select>
+
+    <select name="severity" class="form-control" style="width:130px;" onchange="this.form.submit()">
+      <option value="">All Severities</option>
+      <option value="Critical" {% if selected_severity == 'Critical' %}selected{% endif %}>🔴 Critical</option>
+      <option value="High"     {% if selected_severity == 'High'     %}selected{% endif %}>🟠 High</option>
+      <option value="Medium"   {% if selected_severity == 'Medium'   %}selected{% endif %}>🟡 Medium</option>
+      <option value="Low"      {% if selected_severity == 'Low'      %}selected{% endif %}>🟢 Low</option>
+    </select>
+
+    <select name="type" class="form-control" style="width:200px;" onchange="this.form.submit()">
+      <option value="">All Types</option>
+      {% for tt in threat_types %}
+      <option value="{{ tt }}" {% if selected_type == tt %}selected{% endif %}>{{ tt }}</option>
+      {% endfor %}
+    </select>
+
+    {% if selected_severity or selected_type or selected_session %}
+    <a href="{{ url_for('threats') }}" class="btn btn-ghost btn-sm">✕ Clear</a>
+    {% endif %}
+
+    <span style="margin-left:auto; font-size:12px; color:var(--text-secondary);">
+      {{ threats|length }} threat{{ 's' if threats|length != 1 }}
+    </span>
+  </div>
+</form>
+
+<!-- ── Threats Table ──────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">🚨 Detected Threats</span>
+    <div class="search-box" style="width:240px;">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="form-control" id="threatSearch" placeholder="Search by IP or type...">
+    </div>
+  </div>
+
+  {% if threats %}
+  <div class="table-wrap">
+    <table class="ls-table" id="threatsTable">
+      <thead>
+        <tr>
+          <th>IP Address</th>
+          <th>Threat Type</th>
+          <th>Severity</th>
+          <th>Count</th>
+          <th>First Seen</th>
+          <th>Last Seen</th>
+          <th>Blacklisted</th>
+          <th>Evidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in threats %}
+        <tr class="row-{{ t.severity|lower }}" id="threat-{{ t.id }}">
+          <td>
+            <span class="ip-tag" onclick="copyToClipboard('{{ t.ip }}')" title="Click to copy">
+              {{ t.ip }}
+            </span>
+          </td>
+          <td>
+            <span style="font-weight:500;">{{ t.threat_type }}</span>
+          </td>
+          <td>
+            <span class="badge badge-{{ t.severity|lower }}">{{ t.severity }}</span>
+          </td>
+          <td class="mono" style="color:var(--accent-orange); font-weight:600;">{{ t.count }}</td>
+          <td style="font-size:12px; color:var(--text-secondary);">
+            {% if t.first_seen %}{{ t.first_seen.strftime('%d %b %H:%M:%S') }}{% else %}—{% endif %}
+          </td>
+          <td style="font-size:12px; color:var(--text-secondary);">
+            {% if t.last_seen %}{{ t.last_seen.strftime('%d %b %H:%M:%S') }}{% else %}—{% endif %}
+          </td>
+          <td>
+            {% if t.is_blacklisted %}
+              <span class="badge badge-blacklisted">⚠ BLACKLISTED</span>
+            {% else %}
+              <span style="color:var(--text-muted); font-size:12px;">Not listed</span>
+            {% endif %}
+          </td>
+          <td>
+            <button class="btn btn-ghost btn-sm" onclick="toggleEvidence({{ t.id }})">
+              👁 View
+            </button>
+          </td>
+        </tr>
+        <!-- Evidence Row -->
+        <tr id="ev-{{ t.id }}" style="display:none;">
+          <td colspan="8">
+            <div class="evidence-list show" id="evlist-{{ t.id }}">
+              {% set ev = t.evidence %}
+              {% if ev %}
+                {% set ev_parsed = ev | tojson %}
+                <strong style="color:var(--accent-blue);">Evidence:</strong><br>
+                {% if t.blacklist_reason %}
+                  <span style="color:var(--accent-purple);">🔴 {{ t.blacklist_reason }}</span><br>
+                {% endif %}
+                <pre style="margin-top:4px; white-space:pre-wrap; word-break:break-all;">{{ ev }}</pre>
+              {% else %}
+                No evidence captured.
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">✅</div>
+      <div class="empty-title">No threats found</div>
+      <div class="empty-sub">
+        {% if selected_severity or selected_type or selected_session %}
+          Try adjusting your filters, or
+        {% endif %}
+        <a href="{{ url_for('logs') }}" style="color:var(--accent-blue);">upload a log file</a> to start analysis.
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/threats.js') }}"></script>
+{% endblock %}

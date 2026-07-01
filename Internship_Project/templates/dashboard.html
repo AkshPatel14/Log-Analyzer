@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_sub %}Security overview and recent threat activity{% endblock %}
+
+{% block content %}
+
+<!-- ── Stat Cards ─────────────────────────────── -->
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="stat-icon blue">📂</div>
+    <div class="stat-label">Log Sessions</div>
+    <div class="stat-value blue" data-counter="{{ total_sessions }}">0</div>
+    <div class="stat-sub">Files analyzed</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red">🚨</div>
+    <div class="stat-label">Threats Detected</div>
+    <div class="stat-value red" data-counter="{{ total_threats }}">0</div>
+    <div class="stat-sub">Across all sessions</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-icon orange">🌐</div>
+    <div class="stat-label">Unique Attacker IPs</div>
+    <div class="stat-value orange" data-counter="{{ total_ips }}">0</div>
+    <div class="stat-sub">Distinct source IPs</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon purple">🔴</div>
+    <div class="stat-label">Blacklisted IPs</div>
+    <div class="stat-value purple" data-counter="{{ blacklisted }}">0</div>
+    <div class="stat-sub">Known malicious actors</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green">⚠️</div>
+    <div class="stat-label">Critical Threats</div>
+    <div class="stat-value green" data-counter="{{ severity_counts.Critical }}">0</div>
+    <div class="stat-sub">Needs immediate action</div>
+  </div>
+</div>
+
+<!-- ── Row 2: Severity breakdown + Threat Types ─── -->
+<div class="grid-2" style="margin-bottom:20px;">
+
+  <!-- Severity Breakdown -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">⚡ Severity Breakdown</span>
+    </div>
+    <div class="card-body">
+      {% set total = severity_counts.Critical + severity_counts.High + severity_counts.Medium + severity_counts.Low %}
+      {% if total > 0 %}
+        <div class="severity-bars">
+          {% for sev, cls, color in [
+            ('Critical', 'badge-critical', 'var(--critical-color)'),
+            ('High',     'badge-high',     'var(--high-color)'),
+            ('Medium',   'badge-medium',   'var(--medium-color)'),
+            ('Low',      'badge-low',      'var(--low-color)')
+          ] %}
+          {% set cnt = severity_counts[sev] %}
+          <div class="severity-row">
+            <span class="severity-label"><span class="badge {{ cls }}">{{ sev }}</span></span>
+            <div class="severity-bar">
+              <div class="severity-bar-fill"
+                   style="width: {{ ((cnt / total) * 100)|round }}%;
+                          background: {{ color }};"
+                   data-width="{{ ((cnt / total) * 100)|round }}"></div>
+            </div>
+            <span class="severity-count">{{ cnt }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">No threats yet</div>
+          <div class="empty-sub">Upload a log file to begin analysis</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Threat Type Chart -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🎯 Threat Types</span>
+    </div>
+    <div class="card-body">
+      {% if threat_types %}
+        <div class="chart-wrap" style="height:200px;">
+          <canvas id="threatTypesChart"></canvas>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📊</div>
+          <div class="empty-title">No data yet</div>
+          <div class="empty-sub">Charts will appear after analysis</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ── Row 3: Recent Threats + Recent Sessions ─── -->
+<div class="grid-2">
+
+  <!-- Recent Threats -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🔥 Recent Threats</span>
+      <a href="{{ url_for('threats') }}" class="btn btn-ghost btn-sm">View All →</a>
+    </div>
+    {% if recent_threats %}
+      <div class="table-wrap">
+        <table class="ls-table">
+          <thead>
+            <tr>
+              <th>IP</th>
+              <th>Type</th>
+              <th>Severity</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in recent_threats %}
+            <tr class="row-{{ t.severity|lower }}">
+              <td><span class="ip-tag">{{ t.ip }}</span></td>
+              <td>{{ t.threat_type }}</td>
+              <td>
+                <span class="badge badge-{{ t.severity|lower }}">{{ t.severity }}</span>
+                {% if t.is_blacklisted %}
+                  <span class="badge badge-blacklisted" style="margin-left:4px;">BL</span>
+                {% endif %}
+              </td>
+              <td class="mono">{{ t.count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">✅</div>
+        <div class="empty-title">No threats detected</div>
+        <div class="empty-sub">Load a log file to start analysis</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Recent Sessions -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📂 Recent Sessions</span>
+      <a href="{{ url_for('logs') }}" class="btn btn-ghost btn-sm">Manage →</a>
+    </div>
+    {% if recent_sessions %}
+      <div class="table-wrap">
+        <table class="ls-table">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Type</th>
+              <th>Entries</th>
+              <th>Threats</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in recent_sessions %}
+            <tr>
+              <td style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                  title="{{ s.filename }}">{{ s.filename }}</td>
+              <td><span class="badge badge-info">{{ s.log_type|upper }}</span></td>
+              <td class="mono">{{ s.total_entries }}</td>
+              <td>
+                <span class="badge badge-{{ 'critical' if s.threats|length > 5 else ('high' if s.threats|length > 2 else 'low') }}">
+                  {{ s.threats|length }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <div class="empty-title">No sessions yet</div>
+        <div class="empty-sub">
+          <a href="{{ url_for('load_sample', log_type='apache') }}" class="btn btn-primary btn-sm" style="margin:8px 4px;">
+            Load Apache Sample
+          </a>
+          <a href="{{ url_for('load_sample', log_type='ssh') }}" class="btn btn-ghost btn-sm" style="margin:8px 4px;">
+            Load SSH Sample
+          </a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+  // Pass threat type data to JS
+  const THREAT_TYPES_DATA = {{ threat_types | tojson }};
+</script>
+{% endblock %}

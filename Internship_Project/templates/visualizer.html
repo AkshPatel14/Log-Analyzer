@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Visualizer{% endblock %}
+{% block page_title %}Visualizer{% endblock %}
+{% block page_sub %}Interactive charts and access pattern analysis{% endblock %}
+
+{% block topbar_actions %}
+  <select class="form-control" id="globalSessionSelect" style="width:200px;" onchange="refreshAllCharts()">
+    <option value="">All Sessions</option>
+    {% for s in sessions %}
+    <option value="{{ s.id }}">{{ s.filename[:30] }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-ghost btn-sm" onclick="refreshAllCharts()">🔄 Refresh</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Row 1: Timeline -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <span class="card-title">📈 Requests Over Time</span>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="setGranularity('hour')">Hourly</button>
+      <button class="btn btn-ghost btn-sm" onclick="setGranularity('minute')">Minute</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="chart-wrap" style="height:240px;">
+      <canvas id="timelineChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Row 2: Top IPs + Status Codes -->
+<div class="grid-2" style="margin-bottom:20px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🎯 Top 10 Attacking IPs</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap" style="height:260px;">
+        <canvas id="topIpsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📡 HTTP Status Distribution</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap" style="height:260px;">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 3: Threat Types + Severity -->
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🛡 Threat Type Breakdown</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap" style="height:260px;">
+        <canvas id="threatTypeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">⚡ Severity Distribution</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap" style="height:260px;">
+        <canvas id="severityChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/visualizer.js') }}"></script>
+{% endblock %}
